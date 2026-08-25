@@ -2,5 +2,5 @@ prune girder_collection_review/web_client
 include girder_collection_review/web_client/dist/girder-plugin-collection-review.umd.cjs
 include girder_collection_review/web_client/dist/style.css
 prune girder_collection_review/tests
-exclude MANIFEST.in requirements-dev.txt tox.ini .coveragerc ruff.toml
-include README.md
+exclude MANIFEST.in requirements-dev.txt tox.ini .coveragerc ruff.toml CLAUDE.md
+include README.md package.json package-lock.json
