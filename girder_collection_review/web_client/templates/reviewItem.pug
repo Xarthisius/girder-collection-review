@@ -1,0 +1,9 @@
+.g-review-item
+  a.g-review-back-to-hierarchy(href="#")
+    i.icon-left-open
+    |  Back to collection
+  .g-review-item-name.g-body-title= item.name()
+  if item.get('description')
+    .g-review-item-description= item.get('description')
+  .g-review-item-files
+  .g-review-item-metadata

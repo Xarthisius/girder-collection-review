@@ -1,0 +1,20 @@
+.g-review-page.g-review-page-wide
+  .g-review-banner
+    .g-review-banner-text
+      span.g-review-banner-label Review session
+      span.g-review-banner-name= collection.name()
+    a.g-review-exit.g-review-banner-exit(href="#")
+      i.icon-logout
+      |  Exit review
+
+  if ended
+    .g-review-card
+      h1.g-review-card-title This review has ended
+      p.g-review-card-help
+        | The access key for this collection has been revoked. Ask the journal editor for a
+        | new key if you still need access.
+      a.btn.btn-primary(href="#review") Enter a new key
+  else
+    .g-review-body
+      .g-review-hierarchy
+      .g-review-item-container.hide

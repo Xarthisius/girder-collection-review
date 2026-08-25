@@ -1,0 +1,60 @@
+.modal-dialog
+  .modal-content
+    .modal-header
+      button.close(data-dismiss="modal", aria-hidden="true", type="button") &times;
+      h4.modal-title Review of #{collection.name()}
+    .modal-body
+      if newKey
+        .g-review-new-key
+          h5 Access key
+          p.g-review-new-key-help
+            | Give this key to the journal editor now. It is shown once, and it is the only
+            | thing a reviewer needs in order to read this collection.
+          .input-group
+            input.g-review-key-value.form-control(type="text", readonly, value=newKey)
+            span.input-group-btn
+              button.g-review-copy-key.btn.btn-default(type="button")
+                i.icon-copy
+                |  Copy
+          p.g-review-new-key-url
+            | Reviewers enter it at
+            code= '#review'
+
+      .g-review-open-form
+        label.control-label(for="g-review-duration") Open a new review round
+        .input-group
+          input#g-review-duration.g-review-duration.form-control.input-sm(
+              type="number", min="1", placeholder="Days valid (default 90)")
+          span.input-group-btn
+            button.g-review-open.btn.btn-sm.btn-primary(type="button", disabled=busy)
+              i.icon-plus-squared
+              |  Open review
+
+      h5.g-review-list-title Review rounds
+      if !reviews.length
+        p.g-review-empty This collection has never been under review.
+      else
+        table.table.table-condensed.g-review-table
+          thead
+            tr
+              th Status
+              th Opened
+              th Expires
+              th Reviewer account
+              th
+          tbody
+            each review in reviews
+              tr(class=review.status === 'open' ? 'g-review-row-open' : 'g-review-row-closed')
+                td
+                  span.label(class=review.status === 'open' ? 'label-success' : 'label-default')= review.status
+                td= formatDate(review.created, DATE_SECOND)
+                td= review.expires ? formatDate(review.expires, DATE_SECOND) : '-'
+                td
+                  code= review.reviewerLogin || '(removed)'
+                td.g-review-actions-cell
+                  if review.status === 'open'
+                    button.g-review-close.btn.btn-xs.btn-danger(type="button", review-id=review._id)
+                      i.icon-cancel
+                      |  End
+    .modal-footer
+      a.btn.btn-small.btn-default(data-dismiss="modal") Close

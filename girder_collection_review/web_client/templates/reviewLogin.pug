@@ -1,0 +1,23 @@
+.g-review-page
+  .g-review-card
+    h1.g-review-card-title Reviewer access
+    p.g-review-card-help
+      | Enter the access key you received from the journal editor to view the collection
+      | under review. The session is read only.
+
+    if message
+      .g-review-notice= message
+
+    if warnExistingSession
+      .g-review-warning
+        i.icon-attention
+        |  You are currently signed in to this site. Starting a review session will replace
+        |  your sign-in in this browser.
+
+    form.g-review-login-form
+      .form-group
+        input.g-review-key.form-control.input-lg(
+            type="text", autocomplete="off", spellcheck="false",
+            placeholder="Access key")
+      .g-review-error
+      button.g-review-submit.btn.btn-lg.btn-primary(type="submit") View collection
