@@ -57,3 +57,7 @@ jobs:
       env:
         GIRDER_MAX_CURSOR_TIMEOUT_MS: 60000
       run: tox -e pytest
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
