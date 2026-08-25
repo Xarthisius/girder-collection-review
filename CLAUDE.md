@@ -79,6 +79,11 @@ npx stylelint "plugins/collection_review/girder_collection_review/web_client/sty
   there imports `pkg_resources`, which no longer exists on that Python, so pytest cannot
   even start collection. `tox -e pytest` has its own env and does not need the flag.
 - MongoDB is expected on `localhost:27017`.
+- **`FORCE_COLOR=3` in the environment crashes tox** with
+  `TypeError: value '3' cannot be transformed to bool` before it reads any config
+  (`tox/config/cli/parser.py`, `add_color_flags`). 3 is a legal FORCE_COLOR level, but tox
+  4.55.1 only accepts boolean-ish values. Nothing to do with this repo's tox.ini — run
+  `env -u FORCE_COLOR tox -e ...` when it appears.
 - `pkill -f "girder serve -p 8749"` kills the calling shell too (the pattern matches the
   shell's own argv). Match on the PID instead.
 - `node_modules/lightningcss-linux-x64-musl/` is **root-owned** from an earlier npm run, so
