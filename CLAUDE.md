@@ -27,17 +27,20 @@ run through it.
 | Area | State |
 |---|---|
 | Server (model, provisioning, REST, guard, ACL sync) | **Done.** 36/36 tests pass, 85.6% line coverage. |
-| Web client (routes, 4 views, templates, styles) | **Written and building. Never opened in a browser.** |
+| Web client (routes, 4 views, templates, styles) | **Done.** 47 browser checks pass in real Chrome (`tests/e2e/run.sh`). |
 | `tox -e lint` (ruff) / `tox -e pytest` | Both green. |
 | JS lint (eslint, pug-lint, stylelint) | Clean — but only runnable via the girder symlink. |
 | Server end-to-end vs a live `girder serve` | Verified (see "What was actually verified"). |
-| Browser / visual verification | **Outstanding — the main open item.** |
+| Browser / visual verification | Done — see `girder_collection_review/tests/e2e/`. |
 | Git | `main` branch, one initial commit. No remote configured. |
 
 What it does: a collection owner opens **Actions → Manage review**, gets a one-shot access
 key, hands it to a journal editor; a reviewer pastes it at `#review` and gets the collection
 hierarchy on a navigation-free page, read only, with downloads working; the owner ends the
 review and access dies immediately.
+
+Three test layers: `tox -e pytest` (36 server tests), `tests/e2e/run.sh` (47 browser checks),
+and a `girder serve` + curl pass recorded under "What was actually verified".
 
 ## Commands
 
@@ -104,6 +107,8 @@ girder-collection-review/
       test_read_only_guard.py    # every write refused; guard invisible to normal users
       test_acl_propagation.py    # create / move in / move out / rename / resource-move
       test_close_review.py       # revocation, idempotency, expiry, orphans
+      e2e/                       # real-Chrome checks; NOT part of tox -e pytest
+        run.sh  01-review-flow.mjs  02-modal-and-exit.mjs  README.md
     web_client/
       main.js routes.js session.js
       views/{CollectionView,ReviewManageWidget,ReviewLoginView,ReviewBrowseView,ReviewItemView}.js
@@ -236,57 +241,42 @@ security of the feature.
 
 ## Outstanding work
 
-### 1. Browser verification — the main gap
+### 1. Browser verification — done
 
-Nothing in the web client has been rendered in a real browser; no browser tooling was
-available in the sessions that wrote it. What *was* done instead: the UMD bundle's
-import-time side effects were executed under a proxied `girder` stub (both routes register,
-the CollectionView `wrap` and events-hash entry land, no missing `girder.*` path), and all
-five pug templates were rendered with representative locals. That covers wiring, not
-behaviour or appearance.
+`girder_collection_review/tests/e2e/run.sh` drives the real UI in system Chrome via
+playwright (resolved from `$PLAYWRIGHT` or `~/node_modules/playwright`; no `ms-playwright`
+browsers needed). It drops its database, starts Girder on :8749, runs both scripts, and stops
+the server. **47 checks, all passing.** Re-run it after any `web_client/` change.
 
-Start a server on a scratch db, create a collection with nested folders and an uploaded
-file, then walk this list:
+Confirmed in the browser, including the items that were previously only guesses:
 
-**Owner side**
-- [ ] "Manage review" appears in the collection Actions menu for an ADMIN, absent for a
-      READ-only user.
-- [ ] The modal opens. `ReviewManageWidget` calls `.girderModal(this)`, a jQuery plugin core
-      registers on its own jQuery instance — confirm it is reachable on `girder.$` from a
-      plugin bundle. **Most likely thing to be broken.**
-- [ ] Opening a review shows the key once and Copy works. It uses
-      `document.execCommand('copy')`, which is deprecated — consider
-      `navigator.clipboard.writeText` with `execCommand` as fallback.
-- [ ] The table renders open and closed rows; "End" fires `girder.dialog.confirm` and the
-      confirm modal stacks correctly over the manage modal (Bootstrap 3 stacks modals
-      poorly — this may need the manage modal to close first).
+- `girderModal` **is** reachable on `girder.$` from a plugin bundle — the manage modal opens,
+  and `girder.dialog.confirm` stacks over it with a clickable button (verified with
+  `elementFromPoint`, not just visibility).
+- `Layout.EMPTY` hides header, navbar and footer on a **cold load** straight to `#review`,
+  and `#g-app-body-container` carries `g-empty-layout` without `g-default-layout`.
+- Clicking an item keeps the chrome hidden and never reaches the core `#item/` route, so the
+  `onItemClick` override does its job.
+- Descending a folder does not rewrite the URL hash (`routing: false`).
+- A file downloads from a real browser **navigation** — the auth-cookie path, which no
+  header-authenticated request can exercise.
+- The token is in `sessionStorage` and `localStorage.girderToken` stays `null`.
+- The session survives F5; Exit review clears it and restores the chrome; a closed review
+  shows the end-of-review page; navigating away restores the default layout.
+- At READ there are no upload/create/edit/delete/access-control affordances and no
+  checkboxes, but "Download collection" is still present.
+- The already-signed-in warning renders for a logged-in visitor.
 
-**Reviewer side**
-- [ ] `#review` renders with **no left navbar, no top header, no footer**. `Layout.EMPTY`
-      only hides those containers as a side effect of `_defaultLayout.hide()` during the
-      transition, so verify a *cold load* straight to `#review`, not just in-app navigation.
-- [ ] Never call `app.render()` from these pages — it re-inserts the layout template with
-      `.g-default-layout` and un-hides the chrome while `_layout` is still `'empty'`.
-- [ ] A wrong key shows an inline error, not a login modal.
-- [ ] A correct key navigates to `#review/<id>` and renders the hierarchy.
-- [ ] Descend into nested folders; breadcrumbs work; the URL hash does **not** change.
-- [ ] Click an item → `ReviewItemView` renders in place, chrome stays hidden, "Back to
-      collection" returns. Confirm `FileListWidget` renders (it fetches `item/:id/files`
-      with core's *default* error handler — a 401 there would pop the login modal) and that
-      `MetadataWidget` at `accessLevel: READ` shows no edit affordances.
-- [ ] Download a file, a folder, and the collection from the UI links. This is the cookie
-      path; verified over HTTP with curl but not from a browser navigation.
-- [ ] No Upload / Create / Edit / Delete / Access-control button anywhere; "Download
-      collection" *is* present.
-- [ ] Refresh (F5) — the session survives via `sessionStorage`.
-- [ ] "Exit review" clears the session and returns to the normal app with chrome restored.
-- [ ] Owner ends the review → within the 60s poll the page switches to "This review has
-      ended". Consider shortening `POLL_INTERVAL_MS` while testing.
-- [ ] Open `#review` while signed in as the owner: the warning about replacing the current
-      sign-in appears, and afterwards the owner's own session behaves sanely (the cookie is
-      `path=/` and *does* get replaced — a known accepted trade-off).
+Two things looked like bugs and were not. The first screenshot of the manage modal showed a
+clipped title and overlapping text; measuring the geometry after the fade settled showed it
+is correct (dialog top 30, header present, no overlapping boxes) — the screenshot had caught
+Bootstrap 3's slide-in mid-transform. And a `Cannot read properties of undefined (reading
+'History')` page error turned out to come from the **google_analytics** plugin bundle on
+every Girder page, including `/` and `#collections`; `tests/e2e/README.md` documents the
+noise filter, which never suppresses anything thrown from this plugin's bundle.
 
-There are **no web-client (jasmine) tests**. Worth adding once the UI is confirmed working.
+Still absent: **web-client unit tests** (jasmine). The e2e harness covers the flows, but
+there is no fast test for the view classes in isolation.
 
 ### 2. Deliberately deferred (also listed in README.md)
 

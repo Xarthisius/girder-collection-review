@@ -41,6 +41,10 @@ Tests live in `girder_collection_review/tests/` and use the `pytest-girder` fixt
 `pytestmark = pytest.mark.plugin('collection_review')` — pytest only honors module- and
 class-level `pytestmark`, so it cannot be hoisted into the conftest.
 
+Browser end-to-end checks live in `girder_collection_review/tests/e2e/` and are run by hand
+with `./run.sh` — they need a built web client, a running Girder, a droppable Mongo and a
+Chrome, so they are not part of `tox -e pytest`. See that directory's `README.md`.
+
 JS/pug/stylus linting uses the girder checkout's root config rather than anything in this
 repo, so it runs only when this repo is symlinked into `girder/plugins/`. See `CLAUDE.md`.
 

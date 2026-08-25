@@ -127,3 +127,6 @@ dmypy.json
 .pyre/
 
 node_modules/
+girder_collection_review/tests/e2e/shots/
+girder_collection_review/tests/e2e/.owner
+girder_collection_review/tests/e2e/girder.log
