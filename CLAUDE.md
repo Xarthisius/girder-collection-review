@@ -27,7 +27,7 @@ run through it.
 | Area | State |
 |---|---|
 | Server (model, provisioning, REST, guard, ACL sync) | **Done.** 36/36 tests pass, 85.6% line coverage. |
-| Web client (routes, 4 views, templates, styles) | **Done.** 47 browser checks pass in real Chrome (`tests/e2e/run.sh`). |
+| Web client (routes, 4 views, templates, styles) | **Done.** 49 browser checks pass in real Chrome (`tests/e2e/run.sh`). |
 | `tox -e lint` (ruff) / `tox -e pytest` | Both green. |
 | JS lint (eslint, pug-lint, stylelint) | Clean — but only runnable via the girder symlink. |
 | Server end-to-end vs a live `girder serve` | Verified (see "What was actually verified"). |
@@ -39,7 +39,7 @@ key, hands it to a journal editor; a reviewer pastes it at `#review` and gets th
 hierarchy on a navigation-free page, read only, with downloads working; the owner ends the
 review and access dies immediately.
 
-Three test layers: `tox -e pytest` (36 server tests), `tests/e2e/run.sh` (47 browser checks),
+Three test layers: `tox -e pytest` (36 server tests), `tests/e2e/run.sh` (49 browser checks),
 and a `girder serve` + curl pass recorded under "What was actually verified".
 
 ## Commands
@@ -246,7 +246,7 @@ security of the feature.
 `girder_collection_review/tests/e2e/run.sh` drives the real UI in system Chrome via
 playwright (resolved from `$PLAYWRIGHT` or `~/node_modules/playwright`; no `ms-playwright`
 browsers needed). It drops its database, starts Girder on :8749, runs both scripts, and stops
-the server. **47 checks, all passing.** Re-run it after any `web_client/` change.
+the server. **49 checks, all passing.** Re-run it after any `web_client/` change.
 
 Confirmed in the browser, including the items that were previously only guesses:
 

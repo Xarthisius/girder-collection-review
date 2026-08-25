@@ -12,10 +12,18 @@ header-authenticated request exercises).
 ```
 
 `run.sh` drops its database, starts Girder on a scratch port, runs both scripts, and stops
-the server. 47 checks; screenshots land in `shots/` (gitignored).
+the server. 49 checks; screenshots land in `shots/` (gitignored).
 
 Not wired into `tox -e pytest` on purpose — it needs a built web client, a running server, a
 droppable Mongo, and a Chrome, none of which belong in a unit-test env.
+
+## Determinism
+
+Contexts disable every CSS transition and animation from the first paint (via
+`addInitScript`, so it survives reloads and hash routing), and modal opens wait on
+Bootstrap's own `shown.bs.modal` event plus a frame-stability and opacity check — never on a
+sleep. Without that, screenshots land mid-fade on a half-transparent, still-sliding dialog,
+and `elementFromPoint` hit-testing can resolve to the backdrop instead of the button.
 
 ## Requirements
 
@@ -30,7 +38,7 @@ droppable Mongo, and a Chrome, none of which belong in a unit-test env.
 
 | File | Covers |
 | --- | --- |
-| `01-review-flow.mjs` | Owner opens a review and reads the key; reviewer cold-loads `#review`, is rejected on a bad key, browses, opens an item, downloads, refreshes; review is closed and the page notices. 36 checks. |
+| `01-review-flow.mjs` | Owner opens a review and reads the key; reviewer cold-loads `#review`, is rejected on a bad key, browses, opens an item, downloads, refreshes; review is closed and the page notices. 38 checks. |
 | `02-modal-and-exit.mjs` | Confirm-dialog stacking over the manage modal, the exit-review flow, `sessionStorage`/`localStorage` placement, and the already-signed-in warning. 11 checks. |
 
 `01` writes the owner login to `.owner` because only the first user created in a fresh
