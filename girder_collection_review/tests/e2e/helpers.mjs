@@ -9,11 +9,11 @@ const require_ = createRequire(import.meta.url);
  * checks, which are not part of `tox -e pytest`. Resolve it from $PLAYWRIGHT, else the
  * usual locations.
  */
-export function loadChromium() {
+function loadChromium() {
   const candidates = [
     process.env.PLAYWRIGHT,
     `${process.env.HOME}/node_modules/playwright`,
-    'playwright',
+    'playwright'
   ].filter(Boolean);
   for (const c of candidates) {
     try { return require_(c).chromium; } catch { /* try the next */ }
@@ -21,17 +21,17 @@ export function loadChromium() {
   throw new Error('playwright not found; set PLAYWRIGHT=/path/to/node_modules/playwright');
 }
 
-export const BASE = process.env.GIRDER_URL || 'http://localhost:8749';
-export const API = `${BASE}/api/v1`;
-export const SHOT = process.env.SHOT_DIR || new URL('./shots/', import.meta.url).pathname;
+const BASE = process.env.GIRDER_URL || 'http://localhost:8749';
+const API = `${BASE}/api/v1`;
+const SHOT = process.env.SHOT_DIR || new URL('./shots/', import.meta.url).pathname;
 // No ms-playwright browsers are downloaded here, so drive the system Chrome.
-export const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
+const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 
-export const chromeArgs = { executablePath: CHROME, args: ['--no-sandbox'] };
+const chromeArgs = { executablePath: CHROME, args: ['--no-sandbox'] };
 
 // --------------------------------------------------------------------- assertions
 
-export function makeChecker() {
+function makeChecker() {
   const state = { pass: 0, fail: 0, failures: [] };
   const check = (name, ok, detail = '') => {
     if (ok) { state.pass++; console.log(`  PASS  ${name}`); } else {
@@ -50,7 +50,7 @@ export function makeChecker() {
 
 // --------------------------------------------------------------------- REST fixtures
 
-export async function api(path, { method = 'GET', token, form } = {}) {
+async function api(path, { method = 'GET', token, form } = {}) {
   const headers = {};
   if (token) headers['Girder-Token'] = token;
   let body;
@@ -72,15 +72,15 @@ export async function api(path, { method = 'GET', token, form } = {}) {
  *  - core's EventStream opens a websocket with token=null and gets a 403 handshake
  *  - our own scripts deliberately submit a bad key, which is a 400 by design
  */
-export const KNOWN_NOISE = [
+const KNOWN_NOISE = [
   /reading 'History'/,
   /notifications\/me\?token=null/,
   /WebSocket connection to/,
   /status of 400/,
-  /401 \(Unauthorized\)|You must be logged in/,
+  /401 \(Unauthorized\)|You must be logged in/
 ];
 
-export function watch(page, sink) {
+function watch(page, sink) {
   const add = (s) => { if (!KNOWN_NOISE.some((re) => re.test(s))) sink.push(s); };
   page.on('console', (m) => { if (m.type() === 'error') add(`console.error: ${m.text()}`); });
   page.on('pageerror', (e) => add(`pageerror: ${e.message} @ ${String(e.stack).split('\n')[1] || ''}`));
@@ -120,11 +120,11 @@ const NO_MOTION_CSS = `
  * page script on every navigation, so this survives reloads and hash routing, which an
  * `addStyleTag` after load would not.
  */
-export async function newPage(browser, opts = {}) {
+async function newPage(browser, opts = {}) {
   const ctx = await browser.newContext({
     viewport: { width: 1400, height: 950 },
     reducedMotion: 'reduce',
-    ...opts,
+    ...opts
   });
   await ctx.addInitScript((css) => {
     // Init scripts also run on about:blank and before the parser has built <head>, where
@@ -156,8 +156,9 @@ export async function newPage(browser, opts = {}) {
  * The listener is installed *before* the click, otherwise the event can fire first and the
  * wait never resolves.
  */
-export async function openModal(page, clickSelector, settledSelector) {
+async function openModal(page, clickSelector, settledSelector) {
   await page.evaluate(() => {
+    /* global girder -- evaluated in the page, where core has set window.girder */
     window.__e2eModalShown = 0;
     // girder.$ is the same jQuery instance Bootstrap's plugins are attached to.
     girder.$(document).on('shown.bs.modal', () => { window.__e2eModalShown += 1; });
@@ -170,18 +171,18 @@ export async function openModal(page, clickSelector, settledSelector) {
 }
 
 /** Resolve once an element's opacity is 1 and its box has stopped changing. */
-export async function waitForStable(page, selector, { frames = 3 } = {}) {
+async function waitForStable(page, selector, { frames = 3 } = {}) {
   await page.waitForFunction(async ({ selector, frames }) => {
     const el = document.querySelector(selector);
     if (!el) return false;
-    const raf = () => new Promise((r) => requestAnimationFrame(r));
+    const raf = () => new Promise((resolve) => requestAnimationFrame(resolve));
     const sample = () => {
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       const modal = el.closest('.modal') || el;
       return [
         Math.round(r.top), Math.round(r.left), Math.round(r.height),
-        cs.opacity, cs.transform, getComputedStyle(modal).opacity,
+        cs.opacity, cs.transform, getComputedStyle(modal).opacity
       ].join('|');
     };
     let prev = sample();
@@ -200,7 +201,7 @@ export async function waitForStable(page, selector, { frames = 3 } = {}) {
 }
 
 /** Are the three chrome containers hidden and the body edge-to-edge? */
-export function layoutState(page) {
+function layoutState(page) {
   return page.evaluate(() => {
     const vis = (sel) => {
       const el = document.querySelector(sel);
@@ -213,22 +214,41 @@ export function layoutState(page) {
       nav: vis('#g-global-nav-container'),
       footer: vis('#g-app-footer-container'),
       bodyClass: body ? body.className : null,
-      loginModalVisible: !!document.querySelector('#g-dialog-container.in, .modal.in #g-login-form'),
+      loginModalVisible: !!document.querySelector('#g-dialog-container.in, .modal.in #g-login-form')
     };
   });
 }
 
 /** Sign a page in as an existing user by seeding the token core reads at boot. */
-export async function signIn(page, token) {
+async function signIn(page, token) {
   await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
   await page.evaluate((t) => window.localStorage.setItem('girderToken', t), token);
 }
 
 /** Basic-auth login, returning a token. */
-export async function login(loginName, password = 'password123') {
+async function login(loginName, password = 'password123') {
   const auth = Buffer.from(`${loginName}:${password}`).toString('base64');
   const r = await fetch(`${API}/user/authentication`, {
-    headers: { Authorization: `Basic ${auth}` },
+    headers: { Authorization: `Basic ${auth}` }
   });
   return (await r.json()).authToken.token;
 }
+
+export {
+  loadChromium,
+  BASE,
+  API,
+  SHOT,
+  CHROME,
+  chromeArgs,
+  makeChecker,
+  api,
+  KNOWN_NOISE,
+  watch,
+  newPage,
+  openModal,
+  waitForStable,
+  layoutState,
+  signIn,
+  login
+};

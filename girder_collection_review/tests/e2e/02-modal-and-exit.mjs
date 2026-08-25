@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 
 import {
   BASE, SHOT, api, chromeArgs, loadChromium, login, makeChecker,
-  newPage, openModal, signIn, waitForStable,
+  newPage, openModal, signIn, waitForStable
 } from './helpers.mjs';
 
 const chromium = loadChromium();
@@ -60,7 +60,7 @@ console.log('== Owner: End review via the confirm dialog ==');
       return {
         visible: r.width > 0 && r.height > 0,
         topMost: btn === at || btn.contains(at),
-        opacity: getComputedStyle(btn.closest('.modal') || btn).opacity,
+        opacity: getComputedStyle(btn.closest('.modal') || btn).opacity
       };
     });
     check('confirm button is opaque, visible and not covered by the manage modal',
@@ -92,7 +92,7 @@ console.log('\n== Reviewer: Exit review ==');
 
   const stored = await p.evaluate(() => ({
     session: !!window.sessionStorage.getItem('girderCollectionReviewToken'),
-    local: window.localStorage.getItem('girderToken'),
+    local: window.localStorage.getItem('girderToken')
   }));
   check('token is written to sessionStorage', stored.session === true);
   check('token is NOT written to localStorage (would leak into other tabs)',
@@ -106,7 +106,7 @@ console.log('\n== Reviewer: Exit review ==');
     session: window.sessionStorage.getItem('girderCollectionReviewToken'),
     header: getComputedStyle(document.querySelector('#g-app-header-container')).display,
     nav: getComputedStyle(document.querySelector('#g-global-nav-container')).display,
-    body: document.querySelector('#g-app-body-container').className,
+    body: document.querySelector('#g-app-body-container').className
   }));
   check('Exit review clears the stored token', after.session === null, String(after.session));
   check('Exit review restores the header and navbar',

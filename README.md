@@ -45,8 +45,17 @@ Browser end-to-end checks live in `girder_collection_review/tests/e2e/` and are 
 with `./run.sh` — they need a built web client, a running Girder, a droppable Mongo and a
 Chrome, so they are not part of `tox -e pytest`. See that directory's `README.md`.
 
-JS/pug/stylus linting uses the girder checkout's root config rather than anything in this
-repo, so it runs only when this repo is symlinked into `girder/plugins/`. See `CLAUDE.md`.
+JS, pug and stylus linting is self-contained — it does not need a girder checkout:
+
+```bash
+npm ci
+npm run lint      # eslint + pug-lint + stylelint
+npm run format    # eslint --fix
+```
+
+The rules are the same ones girder core applies to plugin web clients (`@girder/eslint-config`
+and `@girder/pug-lint-config`, plus `stylelint-stylus/standard`), reproduced in this repo's
+root `package.json` so they run standalone and in CI.
 
 ## Trust model
 

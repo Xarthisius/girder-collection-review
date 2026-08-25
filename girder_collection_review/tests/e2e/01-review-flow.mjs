@@ -3,7 +3,7 @@ import { writeFileSync, statSync } from 'fs';
 
 import {
   API, BASE, SHOT, api, chromeArgs, layoutState, loadChromium,
-  makeChecker, newPage, openModal, signIn, watch,
+  makeChecker, newPage, openModal, signIn, watch
 } from './helpers.mjs';
 
 const chromium = loadChromium();
@@ -12,32 +12,52 @@ const { check, report } = makeChecker();
 async function setup() {
   const stamp = Date.now().toString(36);
   const login = `owner${stamp}`.slice(0, 20);
-  let r = await api('/user', { method: 'POST', form: {
-    login, password: 'password123', firstName: 'Own', lastName: 'Er',
-    email: `${login}@example.com` } });
+  let r = await api('/user', {
+    method: 'POST',
+    form: {
+      login,
+      password: 'password123',
+      firstName: 'Own',
+      lastName: 'Er',
+      email: `${login}@example.com`
+    }
+  });
   if (r.status !== 200) throw new Error('user create failed: ' + JSON.stringify(r.json));
   const token = r.json.authToken.token;
 
-  r = await api('/collection', { method: 'POST', token, form: {
-    name: `Reviewed Study ${stamp}`, description: 'A curated study', public: 'false' } });
+  r = await api('/collection', {
+    method: 'POST',
+    token,
+    form: { name: `Reviewed Study ${stamp}`, description: 'A curated study', public: 'false' }
+  });
   const coll = r.json._id;
-  r = await api('/folder', { method: 'POST', token, form: {
-    parentType: 'collection', parentId: coll, name: 'data', public: 'false' } });
+  r = await api('/folder', {
+    method: 'POST',
+    token,
+    form: { parentType: 'collection', parentId: coll, name: 'data', public: 'false' }
+  });
   const f1 = r.json._id;
-  r = await api('/folder', { method: 'POST', token, form: {
-    parentType: 'folder', parentId: f1, name: 'raw', public: 'false' } });
+  r = await api('/folder', {
+    method: 'POST',
+    token,
+    form: { parentType: 'folder', parentId: f1, name: 'raw', public: 'false' }
+  });
   const f2 = r.json._id;
   r = await api('/item', { method: 'POST', token, form: { folderId: f2, name: 'sample.csv' } });
   const item = r.json._id;
 
   // a real file, so downloads and the file list have something to show
   const content = 'a,b\n1,2\n';
-  r = await api('/file', { method: 'POST', token, form: {
-    parentType: 'item', parentId: item, name: 'sample.csv', size: String(content.length) } });
+  r = await api('/file', {
+    method: 'POST',
+    token,
+    form: { parentType: 'item', parentId: item, name: 'sample.csv', size: String(content.length) }
+  });
   await fetch(`${API}/file/chunk?uploadId=${r.json._id}&offset=0`, {
     method: 'POST',
     headers: { 'Girder-Token': token, 'Content-Type': 'application/octet-stream' },
-    body: content });
+    body: content
+  });
 
   return { login, token, coll, f1, f2, item, stamp };
 }
@@ -111,7 +131,7 @@ async function run() {
 
     const opacity = await owner.evaluate(() => ({
       modal: getComputedStyle(document.querySelector('.modal.in')).opacity,
-      title: (document.querySelector('.modal-title') || {}).textContent,
+      title: (document.querySelector('.modal-title') || {}).textContent
     }));
     check('modal is fully opaque and titled when screenshotted',
       opacity.modal === '1' && /^Review of /.test(opacity.title || ''), JSON.stringify(opacity));
@@ -194,7 +214,7 @@ async function run() {
       deleteFolder: q('.g-delete-folder'),
       checkboxes: q('.g-list-checkbox, .g-select-all'),
       checkedActions: q('.g-checked-actions-button'),
-      downloadFolder: q('.g-download-folder'),
+      downloadFolder: q('.g-download-folder')
     };
   });
   check('no mutation affordances rendered at READ',
@@ -232,7 +252,7 @@ async function run() {
   const itemMutators = await rev.evaluate(() => ({
     addMeta: !!document.querySelector('.g-add-json-metadata, .g-add-simple-metadata'),
     editFile: !!document.querySelector('.g-update-info, .g-update-contents'),
-    deleteFile: !!document.querySelector('.g-delete-file'),
+    deleteFile: !!document.querySelector('.g-delete-file')
   }));
   check('item detail exposes no edit affordances at READ',
     Object.values(itemMutators).every((v) => v === false), JSON.stringify(itemMutators));
@@ -240,7 +260,7 @@ async function run() {
 
   const dl = await Promise.all([
     rev.waitForEvent('download', { timeout: 20000 }),
-    rev.click('.g-file-list-link >> nth=0'),
+    rev.click('.g-file-list-link >> nth=0')
   ]).then((r) => r[0]).catch(() => null);
   const bytes = dl ? statSync(await dl.path()).size : -1;
   check('file downloads from a browser navigation (auth cookie path)', bytes === 8, `bytes=${bytes}`);
@@ -266,8 +286,7 @@ async function run() {
 
   // Force the poll rather than waiting out POLL_INTERVAL_MS.
   const ended = await rev.evaluate(async () => {
-    const r = await fetch('/api/v1/review/session', {
-      headers: { 'Girder-Token': window.sessionStorage.getItem('girderCollectionReviewToken') || '' } });
+    const r = await fetch('/api/v1/review/session', { headers: { 'Girder-Token': window.sessionStorage.getItem('girderCollectionReviewToken') || '' } });
     return (await r.json()).review;
   });
   check('after close, GET /review/session reports no session', ended === null, JSON.stringify(ended));

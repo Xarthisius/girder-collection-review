@@ -17,10 +17,9 @@ Original design plan, with the exploration that produced it:
   girder-jsonforms/                        # sibling plugin repo this one is modelled on
 ```
 
-The symlink mirrors how `plugins/jsonforms` is wired. It matters for two things:
-`.circleci/build_plugins.py` in the girder checkout discovers the web client through it, and
-the JS/pug/stylus linters (configured in the girder root `package.json`, not here) can only
-run through it.
+The symlink mirrors how `plugins/jsonforms` is wired. It matters for one thing:
+`.circleci/build_plugins.py` in the girder checkout discovers the web client through it.
+Linting no longer depends on it — see "Linting" below.
 
 ## Status
 
@@ -29,7 +28,7 @@ run through it.
 | Server (model, provisioning, REST, guard, ACL sync) | **Done.** 36/36 tests pass, 85.6% line coverage. |
 | Web client (routes, 4 views, templates, styles) | **Done.** 49 browser checks pass in real Chrome (`tests/e2e/run.sh`). |
 | `tox -e lint` (ruff) / `tox -e pytest` | Both green. |
-| JS lint (eslint, pug-lint, stylelint) | Clean — but only runnable via the girder symlink. |
+| JS lint (eslint, pug-lint, stylelint) | Clean, self-contained (`npm run lint` at the repo root), and wired into CI. |
 | Server end-to-end vs a live `girder serve` | Verified (see "What was actually verified"). |
 | Browser / visual verification | Done — see `girder_collection_review/tests/e2e/`. |
 | Git | `main` branch, one initial commit. No remote configured. |
@@ -57,11 +56,10 @@ cd girder_collection_review/web_client && npm ci && npm run build
 # install into the girder dev venv, for running an actual server
 /home/xarth/codes/wholetale-ng/girder/venv/bin/pip install -e . --no-deps
 
-# JS lint — must run from the girder checkout, which owns the configs
-cd /home/xarth/codes/wholetale-ng/girder
-npx eslint --no-cache "plugins/collection_review/girder_collection_review/web_client/**/*.js"
-npx pug-lint plugins/collection_review/girder_collection_review/web_client/templates/
-npx stylelint "plugins/collection_review/girder_collection_review/web_client/stylesheets/*.styl"
+# JS, pug and stylus lint (self-contained; no girder checkout needed)
+npm ci
+npm run lint
+npm run format   # eslint --fix
 
 # a server on a scratch database (never point this at the dev `girder` db — it creates
 # throwaway users and collections)
@@ -90,12 +88,40 @@ npx stylelint "plugins/collection_review/girder_collection_review/web_client/sty
   `rm -rf node_modules` fails partway and leaves a broken tree. `npm install` recovers it.
   A clean `npm ci` needs that directory removed with sudo first.
 
+## Linting
+
+`package.json` at the repo root is **lint-only** — it builds nothing. It reproduces the rules
+girder core applies to plugin web clients, so `npm run lint` gives the same verdict the girder
+checkout would, without needing one:
+
+| Tool | Config | Covers |
+|---|---|---|
+| eslint | `@girder/eslint-config` (semistandard + Backbone rules) + `eslint:recommended` | `web_client/**/*.js`, `tests/e2e/**/*.mjs` |
+| pug-lint | `@girder/pug-lint-config` | `web_client/templates/` |
+| stylelint | `stylelint-stylus/standard` | `web_client/stylesheets/` |
+
+Two eslint overrides, because the two JS trees are different kinds of code:
+
+* `web_client/**/*.js` — browser + jQuery env, `girder`/`Backbone`/`_`/`moment` globals,
+  4-space indent (the Girder house style these files were written in).
+* `tests/e2e/**/*.mjs` — node env, **2-space indent**. These are Node scripts, not Girder
+  Backbone views, and reindenting them to 4 to satisfy a rule aimed at the latter would be
+  noise. `helpers.mjs` also carries a `/* global girder */` directive: `girder` is genuinely
+  undefined in Node, and only exists inside the `page.evaluate()` callback that references it.
+
+`stylelint-stylus` emits `context.fix is being deprecated` warnings under stylelint 16. They
+are harmless and the girder checkout produces them too.
+
+Note the `web_client/package.json` deliberately stays build-only (vite, pug, stylus), so the
+build install is not weighed down with the lint toolchain.
+
 ## Repo layout
 
 ```
 girder-collection-review/
   setup.py  tox.ini  ruff.toml  requirements-dev.txt  .coveragerc  MANIFEST.in
   README.md  CLAUDE.md  LICENSE  .gitignore
+  package.json                             # lint-only: eslint + pug-lint + stylelint config
   .github/workflows/build-test.yaml
   girder_collection_review/
     __init__.py            # CollectionReviewPlugin.load() + the two move hooks
@@ -143,8 +169,12 @@ girder-collection-review/
    repos sit side by side. Nothing typechecks this package (vite builds plain `.js`), so
    `vite-env.d.ts` declares the `girder` global locally instead. The runtime contract is
    unchanged: core is never bundled, it is read off `window`.
-5. **No JS lint step in CI.** Those linters live in the girder root `package.json`. Adding
-   eslint/pug-lint/stylelint configs to `web_client/` would let CI cover them.
+5. **Lint config lives in a root `package.json`, not in `web_client/`.** girder-jsonforms has
+   no JS lint at all and leans on the girder checkout. Here the root `package.json` is
+   lint-only (mirroring girder's own `@girder/lint` root package) so it can cover both
+   `web_client/**/*.js` and the node `tests/e2e/**/*.mjs`, which sit in different trees. The
+   `web_client/package.json` stays build-only, so the vite install is not weighed down with
+   lint dependencies.
 
 ## Invariants — do not "simplify" these
 

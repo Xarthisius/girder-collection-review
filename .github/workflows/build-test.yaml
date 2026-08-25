@@ -42,9 +42,10 @@ jobs:
         cd girder_collection_review/web_client
         npm ci
         npm run build
-    # NOTE: no JS/pug/stylus lint step. Those linters are configured in the girder checkout's
-    # root package.json, not here, so they only run locally via the plugins/ symlink. Adding
-    # eslint/pug-lint/stylelint configs to web_client/ would let this move into CI.
+    - name: Lint JS, pug and stylus
+      run: |
+        npm ci
+        npm run lint
     - name: Cache tox environments
       uses: actions/cache@v4
       with:

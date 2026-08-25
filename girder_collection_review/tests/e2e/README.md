@@ -17,6 +17,10 @@ the server. 49 checks; screenshots land in `shots/` (gitignored).
 Not wired into `tox -e pytest` on purpose — it needs a built web client, a running server, a
 droppable Mongo, and a Chrome, none of which belong in a unit-test env.
 
+These scripts are linted along with everything else: `npm run lint` from the repo root
+covers them under a node-flavoured eslint override (2-space indent, node globals), separate
+from the 4-space Girder rules applied to `web_client/`.
+
 ## Determinism
 
 Contexts disable every CSS transition and animation from the first paint (via
