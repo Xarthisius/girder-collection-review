@@ -1,5 +1,5 @@
 [run]
-omit = ./venv/*,girder_collection_review/tests/*
+omit = .venv/*,girder_collection_review/tests/*
 
 [report]
-omit = ./venv/*,girder_collection_review/tests/*
+omit = .venv/*,girder_collection_review/tests/*

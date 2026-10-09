@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "girder-collection-review"
+version = "1.0.0"
+description = "Girder plugin to share a collection with anonymous reviewers via a revocable access key"
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "girder>=5.0.6",
+]
+
+[project.entry-points."girder.plugin"]
+collection_review = "girder_collection_review:CollectionReviewPlugin"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-girder>=5.0.0a5.dev0",
+    "pytest-xdist",
+]
+
+# Pinned to the package itself: a bare find_packages() also walks build/ and
+# .eggs/ when they are lying around.
+[tool.setuptools.packages.find]
+include = ["girder_collection_review*"]
+
+[tool.pytest.ini_options]
+cache_dir = "build/test/pytest_cache"
+junit_family = "xunit2"
+testpaths = ["girder_collection_review/tests"]

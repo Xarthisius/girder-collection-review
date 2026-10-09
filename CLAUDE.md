@@ -43,8 +43,17 @@ and a `girder serve` + curl pass recorded under "What was actually verified".
 
 ## Commands
 
+Packaging is **uv**-driven: PEP 621 metadata in `pyproject.toml` (no `setup.py`), dev
+dependencies in a PEP 735 `[dependency-groups] dev` (no `requirements-dev.txt`), and `uv.lock`
+committed. `tox.ini` declares `requires = tox-uv`, so every tox env is built by `uv venv` /
+`uv pip install` and hardlinks out of the shared `~/.cache/uv` instead of copying a few hundred
+MB per env. The lock governs `uv sync` only — tox resolves fresh, so CI still catches upstream
+girder breakage.
+
 ```bash
 # from this repo
+uv sync          # create/refresh .venv (project editable + dev group)
+uv build         # sdist + wheel
 tox -e lint      # ruff check .
 tox -e pytest    # pytest, coverage.xml, 4-way xdist; builds a wheel and pulls girder from PyPI
 tox -e format    # ruff format . && ruff check --fix .
@@ -119,7 +128,7 @@ build install is not weighed down with the lint toolchain.
 
 ```
 girder-collection-review/
-  setup.py  tox.ini  ruff.toml  requirements-dev.txt  .coveragerc  MANIFEST.in
+  pyproject.toml  uv.lock  tox.ini  ruff.toml  .coveragerc  MANIFEST.in
   README.md  CLAUDE.md  LICENSE  .gitignore
   package.json                             # lint-only: eslint + pug-lint + stylelint config
   .github/workflows/build-test.yaml
@@ -149,12 +158,15 @@ girder-collection-review/
 
 ### Divergences from girder-jsonforms (all deliberate)
 
-1. **`[pytest]`, not `[tool:pytest]`, in `tox.ini`.** pytest only reads `[tool:pytest]` from
-   `setup.cfg`; in a tox.ini that section is silently ignored, which is why jsonforms'
-   `testpaths = test` has no effect despite pointing at a directory that does not exist.
-   Here it is `[pytest]` with a real `testpaths`.
-2. **`--strict-markers`, not `--strict`.** `--strict` was removed in pytest 8; the venv here
-   has pytest 9.
+1. ~~**`[pytest]`, not `[tool:pytest]`, in `tox.ini`.**~~ No longer a divergence. pytest only
+   reads `[tool:pytest]` from `setup.cfg`; in a tox.ini that section is silently ignored, which
+   is why jsonforms' `testpaths = test` had no effect despite pointing at a directory that does
+   not exist. Both repos now carry it as `[tool.pytest.ini_options]` in `pyproject.toml`, where
+   there is only one spelling, and jsonforms' `testpaths` was corrected in the same move. Keep
+   the trap in mind if a third repo turns up with the section in a `tox.ini`.
+2. **`--strict-markers`, not `--strict`.** `--strict` is the deprecated alias; it is still
+   accepted in pytest 9.1 (checked), so jsonforms' spelling is not actually broken, but it is
+   on borrowed time and this is the name to use.
 3. **`quote-style = "single"` and `line-length = 100` in `ruff.toml`.** The Python follows
    Girder core's convention (core enforces single quotes with `double-quote-string-fixer`)
    and core's 100-column limit. Neither is checked by the shared
@@ -345,9 +357,9 @@ there is no fast test for the view classes in isolation.
 - **License is BSD-3-Clause, copied from girder-jsonforms** (`Copyright (c) 2024,
   data-exp-lab`) on the assumption this should match the sibling repo. The code was
   originally scaffolded from Girder's Apache-2.0 bundled plugins; change `LICENSE` and
-  `setup.py`'s `license=` together if Apache-2.0 is wanted instead.
-- **Version is pinned at `1.0.0`** in `setup.py` (jsonforms-style hardcoded version rather
-  than `setuptools-scm`). Bump manually on release.
+  `pyproject.toml`'s `license`/`license-files` together if Apache-2.0 is wanted instead.
+- **Version is pinned at `1.0.0`** in `pyproject.toml` (jsonforms-style hardcoded version
+  rather than `setuptools-scm`). Bump manually on release.
 
 ## What was actually verified
 

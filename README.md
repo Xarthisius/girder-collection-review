@@ -30,10 +30,13 @@ a missing `dist/` fails server startup.
 ## Develop
 
 ```bash
+uv sync          # create/refresh .venv (project editable + dev group)
 tox -e lint      # ruff check
 tox -e pytest    # pytest with coverage, 4-way xdist
 tox -e format    # ruff format + ruff check --fix
 ```
+
+The tox envs are built by uv (`requires = tox-uv` in `tox.ini`).
 
 Tests live in `girder_collection_review/tests/` and use the `pytest-girder` fixtures
 (`db`, `server`, `admin`, `user`, `fsAssetstore`); plugin-specific fixtures are in
